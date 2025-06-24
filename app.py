@@ -15,7 +15,15 @@ def home():
 @app.route('/transcript', methods=['POST'])
 def get_transcript():
     try:
+        # Récupérer les données JSON
         data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No JSON data provided"
+            }), 400
+            
         video_id = data.get('video_id')
         
         if not video_id:
@@ -24,29 +32,45 @@ def get_transcript():
                 "error": "video_id is required"
             }), 400
         
-        # Essaye d'abord en français, puis en anglais
+        print(f"Attempting to get transcript for video ID: {video_id}")
+        
+        # Essayer de récupérer la transcription
         transcript_list = None
         language_used = None
+        error_message = None
         
-        for lang in ['fr', 'en', 'auto']:
-            try:
-                if lang == 'auto':
-                    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-                else:
+        # Essayer d'abord sans spécifier de langue
+        try:
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+            language_used = "auto"
+            print(f"Successfully got transcript with auto language")
+        except Exception as e:
+            error_message = str(e)
+            print(f"Failed with auto: {error_message}")
+            
+            # Essayer avec des langues spécifiques
+            for lang in ['en', 'fr', 'es', 'de']:
+                try:
                     transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=[lang])
-                language_used = lang
-                break
-            except:
-                continue
+                    language_used = lang
+                    print(f"Successfully got transcript with language: {lang}")
+                    break
+                except Exception as e:
+                    error_message = str(e)
+                    print(f"Failed with {lang}: {error_message}")
+                    continue
         
         if not transcript_list:
+            print(f"No transcript found for video {video_id}")
             return jsonify({
                 "success": False,
-                "error": "No transcript available for this video"
+                "error": f"No transcript available for this video. Error: {error_message}"
             }), 404
         
         # Joindre tout le texte
         full_text = ' '.join([item['text'] for item in transcript_list])
+        
+        print(f"Transcript found! Length: {len(full_text)} characters")
         
         return jsonify({
             "success": True,
@@ -57,11 +81,12 @@ def get_transcript():
         })
         
     except Exception as e:
+        print(f"Unexpected error: {str(e)}")
         return jsonify({
             "success": False,
-            "error": str(e)
+            "error": f"Unexpected error: {str(e)}"
         }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
