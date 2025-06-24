@@ -66,7 +66,16 @@ def get_transcript():
                 "success": False,
                 "error": f"No transcript available for this video. Error: {error_message}"
             }), 404
-        
+
+import unicodedata
+
+# Nettoyer le texte
+full_text = ' '.join([item['text'] for item in transcript_list])
+# Normaliser les caractères Unicode
+full_text = unicodedata.normalize('NFKD', full_text)
+# Encoder en ASCII en ignorant les erreurs
+full_text = full_text.encode('ascii', 'ignore').decode('ascii')
+
         # Joindre tout le texte
         full_text = ' '.join([item['text'] for item in transcript_list])
         
