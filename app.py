@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from youtube_transcript_api import YouTubeTranscriptApi
 import os
+import unicodedata
 
 app = Flask(__name__)
 
@@ -66,18 +67,17 @@ def get_transcript():
                 "success": False,
                 "error": f"No transcript available for this video. Error: {error_message}"
             }), 404
-
-import unicodedata
-
-# Nettoyer le texte
-full_text = ' '.join([item['text'] for item in transcript_list])
-# Normaliser les caractères Unicode
-full_text = unicodedata.normalize('NFKD', full_text)
-# Encoder en ASCII en ignorant les erreurs
-full_text = full_text.encode('ascii', 'ignore').decode('ascii')
-
+        
         # Joindre tout le texte
         full_text = ' '.join([item['text'] for item in transcript_list])
+        
+        # Nettoyer le texte des caractères problématiques
+        # Option 1: Garder tous les caractères (recommandé)
+        # full_text = full_text
+        
+        # Option 2: Nettoyer les caractères non-ASCII (si problèmes d'encodage)
+        # full_text = unicodedata.normalize('NFKD', full_text)
+        # full_text = full_text.encode('ascii', 'ignore').decode('ascii')
         
         print(f"Transcript found! Length: {len(full_text)} characters")
         
